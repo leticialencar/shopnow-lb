@@ -1,0 +1,34 @@
+services:
+  servidor1:
+    build: .
+    command: python -m src.servers.server 5001
+
+  servidor2:
+    build: .
+    command: python -m src.servers.server 5002
+
+  servidor3:
+    build: .
+    command: python -m src.servers.server 5003
+
+  balanceador:
+    build: .
+    command: python -m src.balancer.main ${ALGORITHM:-round_robin}
+    environment:
+      SERVERS: "http://servidor1:5001,http://servidor2:5002,http://servidor3:5003"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - servidor1
+      - servidor2
+      - servidor3
+
+  ab:
+    image: alpine:3.20
+    profiles: ["test"]
+    depends_on:
+      - balanceador
+    entrypoint:
+      - sh
+      - -c
+      - apk add --no-cache apache2-utils > /dev/null && ab -n 1000 -c 50 http://balanceador:8000/
