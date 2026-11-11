@@ -1,16 +1,23 @@
-
+import os
+import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+from src.algorithms.least_connections import LeastConnections
+from src.algorithms.random import RandomAlgorithm
+from src.algorithms.random import RandomAlgorithm
 from src.algorithms.round_robin import RoundRobin
+from src.balancer.health_check import start_health_check
 from src.balancer.load_balancer import LoadBalancer
 
 PORT = 8000
 
-SERVERS = [
-    "http://localhost:5001",
-    "http://localhost:5002",
-    "http://localhost:5003",
-]
+DEFAULT_SERVERS = "http://localhost:5001, http://localhost:5002, http://localhost:5003"
+
+ALGORITHMS = {
+    "round_robin": RoundRobin,
+    "least_connections": LeastConnections,
+    "random": RandomAlgorithm,
+}
 
 
 class LoadBalancerHandler(BaseHTTPRequestHandler):
@@ -27,14 +34,19 @@ class LoadBalancerHandler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    load_balancer = LoadBalancer(SERVERS, RoundRobin())
+    algorithm_name = sys.argv[1] if len(sys.argv) > 1 else "round_robin"
 
-    http_server = ThreadingHTTPServer(
-        ("0.0.0.0", PORT),
-        LoadBalancerHandler
-    )
+    if algorithm_name not in ALGORITHMS:
+        print(f"Invalid algorithm. Use: {', '.join(ALGORITHMS)}")
+        sys.exit(1)
 
+    servers = os.environ.get("SERVERS", DEFAULT_SERVERS).split(",")
+    load_balancer = LoadBalancer(servers, ALGORITHMS[algorithm_name]())
+
+    start_health_check(load_balancer)
+
+    http_server = ThreadingHTTPServer(("0.0.0.0", PORT), LoadBalancerHandler)
     http_server.load_balancer = load_balancer
 
-    print(f"Balanceador rodando na porta {PORT}")
+    print(f"Load Balancer running on port {PORT} with algorithm: {algorithm_name}")
     http_server.serve_forever()
