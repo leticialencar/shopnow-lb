@@ -3,7 +3,6 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 port = int(sys.argv[1])
 
-
 class ShopNowHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         body = f"Responded by the server on port {port}\n".encode()

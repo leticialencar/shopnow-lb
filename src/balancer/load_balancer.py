@@ -1,7 +1,6 @@
 from threading import Lock
 from urllib.request import urlopen
 
-
 class LoadBalancer:
     def __init__(self, servers, algorithm, timeout=2):
         self.servers = servers
